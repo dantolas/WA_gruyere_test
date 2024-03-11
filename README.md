@@ -105,3 +105,48 @@
         - Browser fix : Never use javascript eval() function to check for valid JSON, instead use 
         the default javascript JSON Parser for more precision, error handling and overall better 
         everything.
+# XSRF
+- The issue with cross site request forgery exists because the browser sends all cookies it 
+it currently has with every request. The server cannot distinguish between an intended user action,
+and a malicious request because it only sees the request, not what caused it.
+
+So if a user is logged in on a site and the browser owns the session cookie, any malicious JS from
+anywhere could then try and send a malicious request from the user's browser, and it will go 
+through because the browser has that session cookie.
+- **Delete snippet**
+- A specific example of this is that a we can delete a user's snippet after they log in just by
+for example changing our own profile picture URL to this malicious request. This information is 
+displayed to the end user after he logs in, and the browser tries to request the image of our 
+profile by sending the request that's specified in the img src attribute.
+- **FIX**
+- First we should change the /deletesnippet API endpoint to only work on POST requests, that 
+eliminates all get request to /deletesnippet from working.
+- Then also send a unique unpredictable authorization token along with each POST request 
+initiated by the user, such as the session cookie hashed with current timestamp. The server can
+then eliminate all POST requests to the url it recieves by checkign the validity of this token.
+- However, if an attacked got hold of a copy of this token, he could then use it until this token
+expired. To eliminate this issue, the request should also include the specific action that 
+triggered it, so that the token can only be used for that action.
+- We can then generate a token and verify it with these functions for example, that are executed
+on specific submit or send actions:
+```
+def _GenerateXsrfToken(self, cookie,action):
+  """Generates a timestamp and XSRF token for all state changing actions."""
+
+  timestamp = time.time()
+  return timestamp + "|" + (str(hash(cookie_secret + cookie + timestamp + action)))
+
+def _VerifyXsrfToken(self, cookie, action_token):
+  """Verifies an XSRF token included in a request."""
+
+  # First, make sure that the token isn't more than a day old.
+  (action_time,action, action_hash) = action_token.split("|", 1)
+  now = time.time()
+  if now - 86400 > float(action_time):
+    return False
+
+  # Second, regenerate it and check that it matches the user supplied value
+  hash_to_verify = str(hash(cookie_secret + cookie + action_time + action)
+  return action_hash == hash_to_verify
+```
+
