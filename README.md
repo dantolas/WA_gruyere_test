@@ -14,6 +14,8 @@
     - **FIX**: Properly sanitize user input or auto-escape the output of a request. To fix this 
     issue in gruyere, a modifier can be added to the template that displays the error in 
     resources/error.gtl line 12 and adding the ':text' modifier
+    - **AJAX**
+    - 
 
 - Stored XSS
     - JS scripts stored in content that is served to users. In gruyere the most obvious place is 
